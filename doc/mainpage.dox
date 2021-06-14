@@ -1,0 +1,63 @@
+/**
+@mainpage Interview case
+
+@section design Design explanation
+
+Based on the throttle pedal pressing, two analog signals are computed: ADC1 and ADC2.<br> 
+For safety reasons, the angle should be computed using both analog inputs. If an error encountred, the Error LED is ON.<br> 
+Based on the previous angle states, a moving average filter is computed, which allows to have a consistent angle values. Within the implementation, we had chosen a MEAN_AVERAGE_INTERVAL_LENGTH value of 5.<br> 
+The angle is computed based on the following equations:<br> 
+`angle = (adc1 -0.5)/ 0.1`<br> 
+`angle = (adc2 -1.0)/0.08`<br> 
+The type of angle is int8_t for the following causes:<br> 
+1- If angle is float, we have issues with having similar angles using both threshold values.<br> 
+2- when having errors, the return value is negative.<br> 
+At this stage, we accept all positive values, even those greater than 30. This will allow to extend the current implementation without touching basic functions. Raised Error codes are DIFFERENT_ANGLES when having a different angle value using the both read Analog inputs, and NEGATIVE_ANGLE which should be raised immediately.<br> 
+Now, the Torque value is computed. Using  ./doc/Pedalmap.png, only speed 0 and 50 are traced. Moreover, only angles between 0 and 30 should be implemented.<br> 
+For speed 50, and by employing the Pedalmap.png, a linear equation may be defined within the interval [0,30]. This equation is as below:<br> 
+torque = 2 * angle - 30 <br> 
+For speed 0, the torque equation my be defined as below:<br> 
+for angle in [0,10] : torque = 1.8 * angle <br> 
+For angle in [10,20] : torque = 1.7 * angle + 1 <br> 
+For angle in [20,30] : torque = 1.5 * angle + 5 <br> 
+Two error codes are defined at this stage : UNDEFINED_SPEED if the speed is different than 0 or 50 ; NOT_IMPLEMENTED_ANGLE if the angle is > 30 <br> 
+
+For further information, you may see the diagram below <br>
+
+![Current implementation](doc/Pedalmap.png)
+
+The main function includes the following implementation: <br> 
+1- Intializing the LED error, the ADC, the Angle Interval used for mean value calculation, and the different employed variables <br> 
+2- For testing purposes, we set the ADC_CHANNEL0 and ADC_CHANNEL1 values respectively to 512 and 532 to be able to test the OK use case <br> 
+3- calculate the obtained angle using these values. If we get a negative value, we stop processing, and we goto error manipulation   <br> 
+4- If we get a positive value, we calculate the torque value. If the return value is equal to NOT_IMPLEMENTED_ANGLE, we goto error manipulation. Otherwise, we show torque value. <br> 
+5- Error manipulation at this stage is limited to set the ERROR LED. Due to processing error codes, an advanced processing of each type of errors is possible. <br> 
+6- Testing: by changing ADC values, we can observe the different behaviors. These behaviors are verified <br> 
+ * ADC values are well protected. If we pass ADC values <0 or >1023, ADC_OUT_OF_RANGE is raised <br> 
+ * The behavior of having different angles is verified. DIFFERENT_ANGLES is raised <br> 
+ * having a negative value of angle is protected. NEGATIVE_ANGLE is raised <br> 
+ * If we try using a speed different than 0 or 50, UNDEFINED_SPEED is raised <br> 
+ * If the angle is greater than 30, NOT_IMPLEMENTED_ANGLE is raised. This error code takes into account     
+   that torque value may have a negative value. The value -1000 should be discussed to be sure that the   
+   system is unable to reach this value. <br> 
+ * OK behavior is well tested. <br> 
+
+The implementation is described below. <br> 
+![Current implementation](doc/implementation-resized.png)
+
+<!-- If you know plantUML and you have it installed (maybe adapt PLANTUML_JAR_PATH
+  in Doxyfile if it's not at `/usr/share/plantuml`) then you can use this:
+  @startuml
+  A -> B
+  @enduml
+
+  Otherwise you can include an image with this line:
+
+  ![Some image](doc/implementation.png)
+-->
+
+@section remarks Remarks and suggestions
+
+Any remarks, suggestions or things that you like to point out?
+
+*/
